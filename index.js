@@ -179,14 +179,46 @@ app.post("/cart", async (req, res) => {
   }
 });
 //wishlist add
- app.post("/api/wishlist", async (req, res) => {
-  const { productId } = req.body;
-  const result = await wishlistCollection.insertOne({
-    productId: new ObjectId(productId),
-    addedAt: new Date(),
-  });
-  res.json({ message: "Added to wishlist", insertedId: result.insertedId });
+app.post("/api/wishlist", async (req, res) => {
+  try {
+    const { productId, email } = req.body;
+
+    if (!productId || !email) {
+      return res.status(400).json({ message: "productId and email are required" });
+    }
+
+    const result = await wishlistCollection.insertOne({
+      productId: new ObjectId(productId),
+      email,
+      addedAt: new Date(),
+    });
+
+    res.status(201).json({ message: "Added to wishlist", insertedId: result.insertedId });
+  } catch (error) {
+    console.error("Error adding to wishlist:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
+//isngle  data
+app.get("/api/wishlist", async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email query parameter is required" });
+    }
+
+    const wishlistItems = await wishlistCollection
+      .find({ email })
+      .toArray();
+
+    res.status(200).json(wishlistItems);
+  } catch (error) {
+    console.error("Error fetching wishlist:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 //deleted
 app.delete("/api/wishlist/:id", async (req, res) => {
   const id = req.params.id;
