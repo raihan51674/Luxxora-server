@@ -153,6 +153,48 @@ app.get("/products", async (req, res) => {
   }
 });
 
+//view all category
+app.get("/api/men-products", async (req, res) => {
+      try {
+        const menProducts = await productCollection
+          .find({ category: "MEN" }) // filter by category MEN
+          .toArray();
+        res.json(menProducts);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to fetch MEN products" });
+      }
+    });
+
+    app.get("/api/women-products", async (req, res) => {
+      try {
+        const menProducts = await productCollection
+          .find({ category: "WOMEN" }) // filter by category MEN
+          .toArray();
+        res.json(menProducts);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to fetch WOMEN products" });
+      }
+    });
+
+        app.get("/api/kid-products", async (req, res) => {
+      try {
+        const menProducts = await productCollection
+          .find({ category: "KID" }) // filter by category MEN
+          .toArray();
+        res.json(menProducts);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to fetch KID products" });
+      }
+    });
+
+
+
+
+
+
 // DELETE product by id
 app.delete("/products/:id", async (req, res) => {
   try {
@@ -200,24 +242,59 @@ app.post("/api/wishlist", async (req, res) => {
   }
 });
 //isngle  data
+// app.get("/api/wishlist", async (req, res) => {
+//   try {
+//     const { email } = req.query;
+
+//     if (!email) {
+//       return res.status(400).json({ message: "Email query parameter is required" });
+//     }
+
+//     const wishlistItems = await wishlistCollection
+//       .find({ email })
+//       .toArray();
+
+//     res.status(200).json(wishlistItems);
+//   } catch (error) {
+//     console.error("Error fetching wishlist:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+
+// Assuming you have productCollection & wishlistCollection defined
 app.get("/api/wishlist", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) return res.status(400).json({ message: "Email required" });
+
   try {
-    const { email } = req.query;
+    // Get wishlist items for this user
+    const wishlistItems = await wishlistCollection.find({ email }).toArray();
 
-    if (!email) {
-      return res.status(400).json({ message: "Email query parameter is required" });
-    }
+    // Fetch full product details for each wishlist item
+    const detailedWishlist = await Promise.all(
+      wishlistItems.map(async (item) => {
+        const product = await productCollection.findOne({ _id: new ObjectId(item.productId) });
+        return product
+          ? { ...product, wishlistId: item._id } // Keep wishlist _id for remove
+          : null;
+      })
+    );
 
-    const wishlistItems = await wishlistCollection
-      .find({ email })
-      .toArray();
-
-    res.status(200).json(wishlistItems);
-  } catch (error) {
-    console.error("Error fetching wishlist:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    // Filter out nulls (in case product no longer exists)
+    res.status(200).json(detailedWishlist.filter(Boolean));
+  } catch (err) {
+    console.error("❌ Error fetching wishlist with products:", err);
+    res.status(500).json({ message: "Failed to fetch wishlist" });
   }
 });
+
+
+
+
+
+
 
 //deleted
 app.delete("/api/wishlist/:id", async (req, res) => {
@@ -225,6 +302,7 @@ app.delete("/api/wishlist/:id", async (req, res) => {
   const result = await wishlistCollection.deleteOne({ productId: new ObjectId(id) });
   res.json({ message: "Removed from wishlist", deletedCount: result.deletedCount });
 });
+
 
  // ✅ POST API - Save Banner URL
     app.post("/banners", async (req, res) => {
